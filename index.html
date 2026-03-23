@@ -3,20 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gold Money Game</title>
+<title>Gold Rush</title>
 
 <style>
 html,body{
   margin:0;
   overflow:hidden;
   font-family:Segoe UI;
-  background:linear-gradient(135deg,#5c94fc,#8fd3ff);
+  background:linear-gradient(135deg,#4facfe,#00f2fe);
 }
 
 canvas{
   display:block;
   margin:10px auto;
-  background:#dff6ff;
+  background:#e6f7ff;
   border-radius:20px;
   width:92vw;
   max-width:360px;
@@ -31,12 +31,13 @@ canvas{
   width:320px;
   text-align:center;
   font-weight:bold;
+  color:#222;
 }
 
 .bar{
   width:100%;
   height:10px;
-  background:#ccc;
+  background:#ddd;
   border-radius:10px;
   overflow:hidden;
   margin-top:5px;
@@ -45,21 +46,8 @@ canvas{
 .fill{
   height:100%;
   width:0%;
-  background:gold;
-}
-
-/* BOOST BUTTON */
-#boostBtn{
-  position:fixed;
-  bottom:20px;
-  left:50%;
-  transform:translateX(-50%);
-  padding:12px 20px;
-  border:none;
-  border-radius:25px;
-  background:#ff9800;
-  color:white;
-  font-weight:bold;
+  background:linear-gradient(to right,gold,orange);
+  transition:0.2s;
 }
 </style>
 </head>
@@ -67,42 +55,39 @@ canvas{
 <body>
 
 <div id="hud">
-  💰 ₱<span id="money">0.00</span>
+  🪙 <span id="gold">0</span> | 💰 ₱<span id="money">0.00</span>
   <div class="bar"><div class="fill" id="fill"></div></div>
 </div>
 
 <canvas id="game" width="360" height="520"></canvas>
 
-<button id="boostBtn">🚀 2X BOOST</button>
-
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// EASIER SETTINGS (NOOB FRIENDLY)
 const GRAVITY = 0.35;
 const JUMP = -6.5;
 const SPEED = 1.6;
 
-// STATE
-let player, obstacles, gold, started, over, time;
-let boost = false;
+let player, obstacles, gold, started, over, combo;
+let particles = [];
 
 function reset(){
   player = { x:70, y:220, v:0 };
   obstacles = [];
   gold = 0;
+  combo = 1;
   started = false;
   over = false;
-  time = 0;
+  particles = [];
 }
 reset();
 
-// SPAWN (EASIER GAP)
+// spawn
 setInterval(()=>{
   if(!started || over) return;
 
-  let gap = 200; // bigger gap = easier
+  let gap = 200;
   let top = Math.random()*150 + 80;
 
   obstacles.push({
@@ -114,12 +99,24 @@ setInterval(()=>{
   });
 },1600);
 
-// LOOP
+// particles
+function addParticles(x,y){
+  for(let i=0;i<6;i++){
+    particles.push({
+      x,y,
+      vx:(Math.random()-0.5)*3,
+      vy:(Math.random()-1.5)*3,
+      life:30
+    });
+  }
+}
+
+// loop
 function update(){
   ctx.clearRect(0,0,360,520);
 
   ctx.font="18px Arial";
-  ctx.fillStyle="black";
+  ctx.fillStyle="#222";
 
   if(!started){
     ctx.fillText("Tap to Start",110,260);
@@ -135,20 +132,18 @@ function update(){
     return;
   }
 
-  time += 1/60;
-
-  // PLAYER
+  // player
   player.v += GRAVITY;
   player.y += player.v;
 
-  ctx.fillStyle="#1e90ff";
+  ctx.fillStyle="#0077ff";
   ctx.fillRect(player.x,player.y,16,22);
 
-  // OBSTACLES
+  // obstacles
   obstacles.forEach(o=>{
     o.x -= SPEED;
 
-    ctx.fillStyle="#8B4513";
+    ctx.fillStyle="#6b3e26";
     ctx.fillRect(o.x,0,o.w,o.top);
     ctx.fillRect(o.x,520-o.bottom,o.w,o.bottom);
 
@@ -159,7 +154,12 @@ function update(){
 
     if(!o.passed && o.x+o.w < player.x){
       o.passed = true;
-      gold += boost ? 2 : 1; // BOOST EFFECT
+
+      combo++;
+      let gain = combo;
+      gold += gain;
+
+      addParticles(player.x,player.y);
     }
   });
 
@@ -167,18 +167,34 @@ function update(){
     over = true;
   }
 
-  // MONEY
+  // particles
+  particles.forEach(p=>{
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life--;
+
+    ctx.fillStyle="gold";
+    ctx.fillRect(p.x,p.y,4,4);
+  });
+  particles = particles.filter(p=>p.life>0);
+
+  // UI
+  document.getElementById("gold").innerText = gold;
+
   let money = gold * 0.05;
   document.getElementById("money").innerText = money.toFixed(2);
 
-  // PROGRESS BAR
   let percent = (gold % 20)/20*100;
-  document.getElementById("fill").style.width = percent + "%";
+  document.getElementById("fill").style.width = percent+"%";
+
+  // combo text
+  ctx.fillStyle="orange";
+  ctx.fillText("x"+combo,160,60);
 
   requestAnimationFrame(update);
 }
 
-// TAP
+// tap
 function tap(){
   if(!started){
     started = true;
@@ -198,19 +214,6 @@ canvas.addEventListener("touchstart", e=>{
   e.preventDefault();
   tap();
 },{passive:false});
-
-// BOOST BUTTON
-document.getElementById("boostBtn").onclick = ()=>{
-  boost = !boost;
-
-  if(boost){
-    document.getElementById("boostBtn").innerText = "🔥 BOOST ACTIVE";
-    document.getElementById("boostBtn").style.background = "green";
-  }else{
-    document.getElementById("boostBtn").innerText = "🚀 2X BOOST";
-    document.getElementById("boostBtn").style.background = "#ff9800";
-  }
-};
 
 update();
 </script>
