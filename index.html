@@ -137,6 +137,32 @@ canvas{
 </div>
 
 <script>
+// ===== SOUND SYSTEM =====
+let audioCtx;
+
+function initSound(){
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+}
+
+function playSound(freq, duration){
+  if(!audioCtx) return;
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.frequency.value = freq;
+  gain.gain.value = 0.2;
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+// ===== GAME =====
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
@@ -233,7 +259,10 @@ function update(){
 
     if(player.x < o.x+o.w && player.x+16 > o.x &&
       (player.y < o.top || player.y+22 > 520-o.bottom)){
-        over = true;
+        if(!over){
+          over = true;
+          playSound(120,0.4); // game over sound
+        }
     }
 
     if(!o.passed && o.x+o.w < player.x){
@@ -244,11 +273,13 @@ function update(){
       gold += gain;
 
       addParticles(player.x,player.y);
+      playSound(600,0.1); // coin sound
     }
   });
 
   if(player.y > 520){
     over = true;
+    playSound(120,0.4);
   }
 
   particles.forEach(p=>{
@@ -277,6 +308,8 @@ function update(){
 
 // TAP
 function tap(){
+  initSound();
+
   if(!started){
     started = true;
     return;
@@ -288,6 +321,7 @@ function tap(){
   }
 
   player.v = JUMP;
+  playSound(300,0.1); // jump sound
 }
 
 canvas.addEventListener("click", tap);
@@ -296,14 +330,14 @@ canvas.addEventListener("touchstart", e=>{
   tap();
 },{passive:false});
 
-// BOOST CLICK
+// BOOST BUTTON
 document.getElementById("boostBtn").onclick = ()=>{
   if(!boost){
     document.getElementById("popup").style.display="flex";
   }
 };
 
-// DONATION ACTIONS
+// DONATION
 function pay(){
   window.location.href="https://www.paypal.me/MorrisZoleta982";
 }
