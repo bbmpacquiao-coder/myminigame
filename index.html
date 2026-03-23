@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Earn Gold Game</title>
+<title>Gold Money Game</title>
 
 <style>
 html,body{
@@ -22,7 +22,7 @@ canvas{
   max-width:360px;
 }
 
-/* MONEY BAR */
+/* HUD */
 #hud{
   position:absolute;
   top:10px;
@@ -47,30 +47,47 @@ canvas{
   width:0%;
   background:gold;
 }
+
+/* BOOST BUTTON */
+#boostBtn{
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  padding:12px 20px;
+  border:none;
+  border-radius:25px;
+  background:#ff9800;
+  color:white;
+  font-weight:bold;
+}
 </style>
 </head>
 
 <body>
 
 <div id="hud">
-  💰 ₱<span id="money">0.00</span>  
+  💰 ₱<span id="money">0.00</span>
   <div class="bar"><div class="fill" id="fill"></div></div>
 </div>
 
 <canvas id="game" width="360" height="520"></canvas>
 
+<button id="boostBtn">🚀 2X BOOST</button>
+
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-const GRAVITY = 0.5;
-const JUMP = -8;
-const SPEED = 2;
+// EASIER SETTINGS (NOOB FRIENDLY)
+const GRAVITY = 0.35;
+const JUMP = -6.5;
+const SPEED = 1.6;
 
 // STATE
 let player, obstacles, gold, started, over, time;
+let boost = false;
 
-// RESET
 function reset(){
   player = { x:70, y:220, v:0 };
   obstacles = [];
@@ -81,12 +98,12 @@ function reset(){
 }
 reset();
 
-// SPAWN
+// SPAWN (EASIER GAP)
 setInterval(()=>{
   if(!started || over) return;
 
-  let gap = 170;
-  let top = Math.random()*180 + 60;
+  let gap = 200; // bigger gap = easier
+  let top = Math.random()*150 + 80;
 
   obstacles.push({
     x:360,
@@ -95,7 +112,7 @@ setInterval(()=>{
     bottom:520-(top+gap),
     passed:false
   });
-},1400);
+},1600);
 
 // LOOP
 function update(){
@@ -135,16 +152,14 @@ function update(){
     ctx.fillRect(o.x,0,o.w,o.top);
     ctx.fillRect(o.x,520-o.bottom,o.w,o.bottom);
 
-    // COLLISION
     if(player.x < o.x+o.w && player.x+16 > o.x &&
       (player.y < o.top || player.y+22 > 520-o.bottom)){
         over = true;
     }
 
-    // GOLD
     if(!o.passed && o.x+o.w < player.x){
       o.passed = true;
-      gold++;
+      gold += boost ? 2 : 1; // BOOST EFFECT
     }
   });
 
@@ -152,12 +167,12 @@ function update(){
     over = true;
   }
 
-  // 💰 MONEY SYSTEM
-  let money = gold * 0.05; // ₱0.05 per gold
+  // MONEY
+  let money = gold * 0.05;
   document.getElementById("money").innerText = money.toFixed(2);
 
-  // PROGRESS BAR (addiction)
-  let percent = (gold % 20) / 20 * 100;
+  // PROGRESS BAR
+  let percent = (gold % 20)/20*100;
   document.getElementById("fill").style.width = percent + "%";
 
   requestAnimationFrame(update);
@@ -183,6 +198,19 @@ canvas.addEventListener("touchstart", e=>{
   e.preventDefault();
   tap();
 },{passive:false});
+
+// BOOST BUTTON
+document.getElementById("boostBtn").onclick = ()=>{
+  boost = !boost;
+
+  if(boost){
+    document.getElementById("boostBtn").innerText = "🔥 BOOST ACTIVE";
+    document.getElementById("boostBtn").style.background = "green";
+  }else{
+    document.getElementById("boostBtn").innerText = "🚀 2X BOOST";
+    document.getElementById("boostBtn").style.background = "#ff9800";
+  }
+};
 
 update();
 </script>
