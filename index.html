@@ -47,7 +47,6 @@ canvas{
   background:linear-gradient(to right,gold,orange);
 }
 
-/* BUTTONS */
 #boostBtn, #shareBtn{
   position:fixed;
   left:50%;
@@ -97,6 +96,14 @@ canvas{
   border-radius:10px;
 }
 
+input{
+  width:90%;
+  padding:8px;
+  margin:5px 0;
+  border-radius:8px;
+  border:1px solid #ccc;
+}
+
 .paypal{background:#0070ba;color:white;}
 .copy{background:#333;color:white;}
 .unlock{background:#4caf50;color:white;}
@@ -131,38 +138,35 @@ canvas{
     <div>09289652830</div>
     <button class="btn copy" onclick="copyNum()">Copy Number</button>
 
-    <button class="btn unlock" onclick="unlock()">I Supported</button>
+    <p>Enter proof of payment</p>
+    <input id="payerName" placeholder="Your Name">
+    <input id="refNum" placeholder="Reference Number">
+
+    <button class="btn unlock" onclick="unlock()">Submit & Verify</button>
     <button class="btn close" onclick="closePop()">Close</button>
   </div>
 </div>
 
 <script>
-// ===== SOUND SYSTEM =====
+// SOUND
 let audioCtx;
-
 function initSound(){
   if(!audioCtx){
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
 }
-
-function playSound(freq, duration){
+function playSound(freq,duration){
   if(!audioCtx) return;
-
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-
-  osc.frequency.value = freq;
-  gain.gain.value = 0.2;
-
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-
-  osc.start();
-  osc.stop(audioCtx.currentTime + duration);
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.frequency.value = freq;
+  g.gain.value = 0.2;
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start();
+  o.stop(audioCtx.currentTime + duration);
 }
 
-// ===== GAME =====
+// GAME
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
@@ -174,6 +178,7 @@ let player, obstacles, gold, combo, started, over;
 let particles = [];
 let best = localStorage.getItem("best") || 0;
 let boost = false;
+let verifying = false;
 
 document.getElementById("best").innerText = best;
 
@@ -188,7 +193,6 @@ function reset(){
 }
 reset();
 
-// SPAWN
 setInterval(()=>{
   if(!started || over) return;
 
@@ -204,7 +208,6 @@ setInterval(()=>{
   });
 },1800);
 
-// PARTICLES
 function addParticles(x,y){
   for(let i=0;i<6;i++){
     particles.push({
@@ -216,7 +219,6 @@ function addParticles(x,y){
   }
 }
 
-// LOOP
 function update(){
   ctx.clearRect(0,0,360,520);
 
@@ -261,7 +263,7 @@ function update(){
       (player.y < o.top || player.y+22 > 520-o.bottom)){
         if(!over){
           over = true;
-          playSound(120,0.4); // game over sound
+          playSound(120,0.4);
         }
     }
 
@@ -273,7 +275,7 @@ function update(){
       gold += gain;
 
       addParticles(player.x,player.y);
-      playSound(600,0.1); // coin sound
+      playSound(600,0.1);
     }
   });
 
@@ -286,7 +288,6 @@ function update(){
     p.x += p.vx;
     p.y += p.vy;
     p.life--;
-
     ctx.fillStyle="gold";
     ctx.fillRect(p.x,p.y,4,4);
   });
@@ -306,7 +307,6 @@ function update(){
   requestAnimationFrame(update);
 }
 
-// TAP
 function tap(){
   initSound();
 
@@ -321,7 +321,7 @@ function tap(){
   }
 
   player.v = JUMP;
-  playSound(300,0.1); // jump sound
+  playSound(300,0.1);
 }
 
 canvas.addEventListener("click", tap);
@@ -337,7 +337,7 @@ document.getElementById("boostBtn").onclick = ()=>{
   }
 };
 
-// DONATION
+// DONATION ACTIONS
 function pay(){
   window.location.href="https://www.paypal.me/MorrisZoleta982";
 }
@@ -352,11 +352,39 @@ function copyNum(){
   alert("Copied number");
 }
 
+// 🔒 VERIFICATION SYSTEM
 function unlock(){
-  boost = true;
-  document.getElementById("popup").style.display="none";
-  document.getElementById("boostBtn").innerText="🔥 BOOST ACTIVE";
-  document.getElementById("boostBtn").style.background="green";
+  if(verifying) return;
+
+  let name = document.getElementById("payerName").value.trim();
+  let ref = document.getElementById("refNum").value.trim();
+
+  if(name === "" || ref === ""){
+    alert("Please enter name and reference number");
+    return;
+  }
+
+  let confirmPay = confirm("Confirm you sent the support?");
+
+  if(!confirmPay) return;
+
+  verifying = true;
+
+  const btn = document.querySelector(".unlock");
+  btn.innerText = "⏳ Verifying...";
+  btn.disabled = true;
+
+  setTimeout(()=>{
+    boost = true;
+
+    document.getElementById("popup").style.display="none";
+
+    const boostBtn = document.getElementById("boostBtn");
+    boostBtn.innerText="🔥 BOOST ACTIVE";
+    boostBtn.style.background="green";
+
+    verifying = false;
+  },3000);
 }
 
 function closePop(){
