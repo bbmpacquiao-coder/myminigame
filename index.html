@@ -1,1 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Earn Gold Game</title>
 
+<style>
+html,body{
+  margin:0;
+  overflow:hidden;
+  font-family:Segoe UI;
+  background:linear-gradient(135deg,#5c94fc,#8fd3ff);
+}
+
+canvas{
+  display:block;
+  margin:10px auto;
+  background:#dff6ff;
+  border-radius:20px;
+  width:92vw;
+  max-width:360px;
+}
+
+/* MONEY BAR */
+#hud{
+  position:absolute;
+  top:10px;
+  left:50%;
+  transform:translateX(-50%);
+  width:320px;
+  text-align:center;
+  font-weight:bold;
+}
+
+.bar{
+  width:100%;
+  height:10px;
+  background:#ccc;
+  border-radius:10px;
+  overflow:hidden;
+  margin-top:5px;
+}
+
+.fill{
+  height:100%;
+  width:0%;
+  background:gold;
+}
+</style>
+</head>
+
+<body>
+
+<div id="hud">
+  💰 ₱<span id="money">0.00</span>  
+  <div class="bar"><div class="fill" id="fill"></div></div>
+</div>
+
+<canvas id="game" width="360" height="520"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const GRAVITY = 0.5;
+const JUMP = -8;
+const SPEED = 2;
+
+// STATE
+let player, obstacles, gold, started, over, time;
+
+// RESET
+function reset(){
+  player = { x:70, y:220, v:0 };
+  obstacles = [];
+  gold = 0;
+  started = false;
+  over = false;
+  time = 0;
+}
+reset();
+
+// SPAWN
+setInterval(()=>{
+  if(!started || over) return;
+
+  let gap = 170;
+  let top = Math.random()*180 + 60;
+
+  obstacles.push({
+    x:360,
+    w:45,
+    top:top,
+    bottom:520-(top+gap),
+    passed:false
+  });
+},1400);
+
+// LOOP
+function update(){
+  ctx.clearRect(0,0,360,520);
+
+  ctx.font="18px Arial";
+  ctx.fillStyle="black";
+
+  if(!started){
+    ctx.fillText("Tap to Start",110,260);
+    requestAnimationFrame(update);
+    return;
+  }
+
+  if(over){
+    ctx.fillText("Game Over",120,240);
+    ctx.fillText("Tap to Restart",95,270);
+    ctx.fillText("Gold: "+gold,130,300);
+    requestAnimationFrame(update);
+    return;
+  }
+
+  time += 1/60;
+
+  // PLAYER
+  player.v += GRAVITY;
+  player.y += player.v;
+
+  ctx.fillStyle="#1e90ff";
+  ctx.fillRect(player.x,player.y,16,22);
+
+  // OBSTACLES
+  obstacles.forEach(o=>{
+    o.x -= SPEED;
+
+    ctx.fillStyle="#8B4513";
+    ctx.fillRect(o.x,0,o.w,o.top);
+    ctx.fillRect(o.x,520-o.bottom,o.w,o.bottom);
+
+    // COLLISION
+    if(player.x < o.x+o.w && player.x+16 > o.x &&
+      (player.y < o.top || player.y+22 > 520-o.bottom)){
+        over = true;
+    }
+
+    // GOLD
+    if(!o.passed && o.x+o.w < player.x){
+      o.passed = true;
+      gold++;
+    }
+  });
+
+  if(player.y > 520){
+    over = true;
+  }
+
+  // 💰 MONEY SYSTEM
+  let money = gold * 0.05; // ₱0.05 per gold
+  document.getElementById("money").innerText = money.toFixed(2);
+
+  // PROGRESS BAR (addiction)
+  let percent = (gold % 20) / 20 * 100;
+  document.getElementById("fill").style.width = percent + "%";
+
+  requestAnimationFrame(update);
+}
+
+// TAP
+function tap(){
+  if(!started){
+    started = true;
+    return;
+  }
+
+  if(over){
+    reset();
+    return;
+  }
+
+  player.v = JUMP;
+}
+
+canvas.addEventListener("click", tap);
+canvas.addEventListener("touchstart", e=>{
+  e.preventDefault();
+  tap();
+},{passive:false});
+
+update();
+</script>
+
+</body>
+</html>
